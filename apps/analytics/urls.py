@@ -17,4 +17,14 @@ urlpatterns = [
     path('timeline/', views.timeline_analysis, name='timeline_analysis'),
     path('salary/', views.salary_insights, name='salary_insights'),
     path('response-time/', views.response_time_analysis, name='response_time'),
+
+    # Export
+    path('export/applications/csv/', views.export_applications_csv,
+         name='export_applications_csv'),
+    path('export/applications/pdf/', views.export_applications_pdf,
+         name='export_applications_pdf'),
+    path('export/analytics/csv/', views.export_analytics_csv,
+         name='export_analytics_csv'),
+    path('export/companies/csv/', views.export_companies_csv,
+         name='export_companies_csv'),
 ]

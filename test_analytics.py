@@ -6,8 +6,8 @@ BASE_URL = 'http://127.0.0.1:8000/api'
 # Login first (use your existing user)
 print('1. Logging in...')
 response = requests.post(f'{BASE_URL}/auth/login/', json={
-    'email': 'testuser@example.com',
-    'password': 'SecurePass123!'
+    'email': 'demo@example.com',
+    'password': 'DemoPass123!'
 })
 
 if response.status_code != 200:
@@ -43,7 +43,8 @@ if response.status_code == 200:
 # 2. Applications Over Time
 print('\n2. Applications Over Time (Monthly)')
 print('-' * 50)
-response = requests.get(f'{BASE_URL}/analytics/applications-over-time/?period=month', headers=headers)
+response = requests.get(
+    f'{BASE_URL}/analytics/applications-over-time/?period=month', headers=headers)
 print(f'Status: {response.status_code}')
 if response.status_code == 200:
     data = response.json()
@@ -58,7 +59,8 @@ print(f'Status: {response.status_code}')
 if response.status_code == 200:
     data = response.json()
     for item in data:
-        print(f"  {item['period']}: {item['success_rate']}% ({item['success']}/{item['total']})")
+        print(
+            f"  {item['period']}: {item['success_rate']}% ({item['success']}/{item['total']})")
 
 # 4. Skills Demand
 print('\n4. Skills Demand')
@@ -96,7 +98,8 @@ if response.status_code == 200:
 # 7. Response Time
 print('\n7. Response Time Analysis')
 print('-' * 50)
-response = requests.get(f'{BASE_URL}/analytics/response-time/', headers=headers)
+response = requests.get(
+    f'{BASE_URL}/analytics/response-time/', headers=headers)
 print(f'Status: {response.status_code}')
 if response.status_code == 200:
     data = response.json()

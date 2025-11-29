@@ -3,9 +3,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
 from bson.errors import InvalidId
+from bson import ObjectId
+from datetime import datetime
 
 from .services import ApplicationService
+from .file_service import FileUploadService
 from .serializers import (
     ApplicationSerializer,
     ApplicationCreateSerializer,
@@ -272,3 +276,198 @@ def search_applications(request):
 
     serializer = ApplicationSerializer(applications, many=True)
     return Response(serializer.data)
+
+
+class FileUploadView(APIView):
+    """
+    POST /api/applications/upload/
+    Upload a file (resume, offer letter, etc.)
+    """
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        """Upload a file."""
+        file = request.FILES.get('file')
+        file_type = request.data.get('file_type', 'document')
+
+        if not file:
+            return Response(
+                {'error': 'No file provided'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Save file
+        file_info, errors = FileUploadService.save_file(
+            file,
+            request.user.id,
+            file_type
+        )
+
+        if errors:
+            return Response(
+                {'errors': errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(file_info, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def attach_file_to_application(request, pk):
+    """
+    POST /api/applications/{id}/attach/
+    Attach a file to an application.
+    """
+    try:
+        file = request.FILES.get('file')
+        if not file:
+            return Response(
+                {'error': 'No file provided'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Save file
+        file_info, errors = FileUploadService.save_file(
+            file,
+            request.user.id,
+            'document'
+        )
+
+        if errors:
+            return Response(
+                {'errors': errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Attach to application
+        service = ApplicationService()
+
+        # Add to attachments array
+        from config.mongodb import get_collection
+        collection = get_collection('applications')
+
+        result = collection.update_one(
+            {'_id': ObjectId(pk), 'user_id': request.user.id},
+            {
+                '$push': {'attachments': file_info},
+                '$set': {'updated_at': datetime.utcnow()}
+            }
+        )
+
+        if result.modified_count > 0:
+            return Response(
+                {'message': 'File attached successfully', 'file': file_info},
+                status=status.HTTP_201_CREATED
+            )
+
+        return Response(
+            {'error': 'Application not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    except InvalidId:
+        return Response(
+            {'error': 'Invalid application ID'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_attachment(request, pk, attachment_index):
+    """
+    DELETE /api/applications/{id}/attachments/{index}/
+    Delete an attachment from application.
+    """
+    try:
+        service = ApplicationService()
+        application = service.get_application(pk, request.user.id)
+
+        if not application:
+            return Response(
+                {'error': 'Application not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        attachments = application.get('attachments', [])
+        attachment_index = int(attachment_index)
+
+        if attachment_index < 0 or attachment_index >= len(attachments):
+            return Response(
+                {'error': 'Invalid attachment index'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Get file path and delete file
+        file_path = attachments[attachment_index].get('file_path')
+        if file_path:
+            FileUploadService.delete_file(file_path)
+
+        # Remove from attachments array
+        from config.mongodb import get_collection
+        collection = get_collection('applications')
+
+        # Remove by index
+        attachments.pop(attachment_index)
+
+        result = collection.update_one(
+            {'_id': ObjectId(pk), 'user_id': request.user.id},
+            {
+                '$set': {
+                    'attachments': attachments,
+                    'updated_at': datetime.utcnow()
+                }
+            }
+        )
+
+        return Response(
+            {'message': 'Attachment deleted successfully'},
+            status=status.HTTP_204_NO_CONTENT
+        )
+
+    except (InvalidId, ValueError):
+        return Response(
+            {'error': 'Invalid ID'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_resume(request):
+    """
+    POST /api/applications/upload-resume/
+    Upload resume and update user profile.
+    """
+    file = request.FILES.get('file')
+
+    if not file:
+        return Response(
+            {'error': 'No file provided'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Save file
+    file_info, errors = FileUploadService.save_file(
+        file,
+        request.user.id,
+        'resume'
+    )
+
+    if errors:
+        return Response(
+            {'errors': errors},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Update user profile
+    user = request.user
+    user.resume_url = file_info['file_url']
+    user.save()
+
+    return Response({
+        'message': 'Resume uploaded successfully',
+        'file': file_info
+    }, status=status.HTTP_201_CREATED)

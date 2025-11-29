@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
+    'drf_spectacular',
+    'drf_spectacular_sidecar',  # Add this line
 
     # Local apps
     'apps.users',
@@ -146,6 +148,7 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',  # Add this line
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
     'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S',
     'DATE_FORMAT': '%Y-%m-%d',
@@ -259,3 +262,39 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+
+
+# API Documentation Settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Job Application Tracker API',
+    'DESCRIPTION': 'A comprehensive API for tracking job applications with analytics, ML automation, and insights.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SCHEMA_PATH_PREFIX': '/api/',
+
+    # Authentication
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SECURITY': [{'bearerAuth': []}],
+
+    # Tags
+    'TAGS': [
+        {'name': 'Authentication',
+            'description': 'User registration, login, and profile management'},
+        {'name': 'Applications', 'description': 'Job application tracking and management'},
+        {'name': 'Companies', 'description': 'Company information and statistics'},
+        {'name': 'Analytics', 'description': 'Dashboard statistics and insights'},
+        {'name': 'Export', 'description': 'Data export in CSV and PDF formats'},
+    ],
+
+    # UI Settings
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': True,
+        'filter': True,
+    },
+
+    'SWAGGER_UI_DIST': 'SIDECAR',
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+    'REDOC_DIST': 'SIDECAR',
+}
