@@ -82,6 +82,7 @@ DATABASES = {
 
 # MongoDB Configuration (using PyMongo directly)
 MONGODB_SETTINGS = {
+    "connection_string": os.getenv("MONGO_URI", ''),
     'db_name': os.getenv('MONGO_DB_NAME', 'job_tracker'),
     'host': os.getenv('MONGO_HOST', 'localhost'),
     'port': int(os.getenv('MONGO_PORT', '27017')),

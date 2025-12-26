@@ -25,7 +25,9 @@ class MongoDB:
         mongo_settings = settings.MONGODB_SETTINGS
         
         # Build connection string
-        if mongo_settings['username'] and mongo_settings['password']:
+        if mongo_settings["connection_string"] and mongo_settings["connection_string"] != '':
+            connection_string = mongo_settings["connection_string"]
+        elif mongo_settings['username'] and mongo_settings['password']:
             connection_string = (
                 f"mongodb://{mongo_settings['username']}:{mongo_settings['password']}"
                 f"@{mongo_settings['host']}:{mongo_settings['port']}/{mongo_settings['db_name']}"
