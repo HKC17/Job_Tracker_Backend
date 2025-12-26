@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'drf_spectacular',
+    'drf_spectacular_sidecar'
 
     # Local apps
     'apps.users',
